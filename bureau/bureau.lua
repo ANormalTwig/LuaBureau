@@ -1,0 +1,359 @@
+local log = require("util.logger")
+local protocol = require("bureau.protocol")
+
+local Loop = require("core.loop")
+local Pool = require("core.pool")
+local Server = require("core.server")
+local User = require("bureau.user")
+
+local string_byte, string_format, string_rep, string_sub = string.byte,  string.format, string.rep, string.sub
+
+local function hexify(str)
+	local chars = {string_byte(str, 1, #str)}
+	return string.format(string_rep("%02x ", #chars), unpack(chars))
+end
+---@class Bureau: Server
+---@field users table<number, User>
+---@field loop Loop
+---@field pool Pool
+local Bureau = {}
+Bureau.__index = Bureau
+setmetatable(Bureau, Server)
+
+--- Creates a new Bureau object.
+function Bureau:new()
+	local bureau = getmetatable(self):new()
+	setmetatable(bureau, self)
+
+	bureau.users = {}
+	local loop = Loop:new()
+	loop:add(bureau)
+	bureau.loop = loop
+	bureau.pool = Pool:new(0xFFFF)
+
+	bureau:on("connect", function(client)
+		---@cast client Client
+		loop:add(client)
+
+		---@type User
+		local user
+
+		client:on("close", function()
+			if not user then return end
+
+			for other in pairs(user.aura) do
+				user:removeAura(other)
+			end
+
+			bureau.pool:freeID(user.id)
+			bureau.users[user.id] = nil
+
+			local userCount = bureau:getUserCount()
+			---@diagnostic disable-next-line: redefined-local
+			bureau:sendAll(function(user)
+				return protocol.generalMessage({
+					id1 = 0,
+					id2 = user.id,
+					type = "SMSG_USER_COUNT",
+				}, protocol.fromU8(1) .. protocol.fromU32(userCount))
+			end)
+		end)
+
+		client:on("data", function(data)
+			if not user then
+				if not data == "hello\1\1" then
+					client:close()
+					return
+				end
+
+				local id = bureau.pool:getID()
+				if not id then
+					client:close()
+					return
+				end
+
+				local helloResponse = string_format("hello\0%s%s", protocol.fromU32(id), protocol.fromU32(id))
+				client:send(helloResponse)
+				user = User:new(id, client)
+				bureau.users[user.id] = user
+
+				return
+			end
+
+			local id = protocol.getU32(data, 2)
+			if id ~= user.id then
+				log(2, "ID Mismatch from %s(%d).", user.name, user.id)
+				return
+			end
+
+			-- https://github.com/LeadRDRK/OpenBureau/blob/main/docs/Protocol.md
+			-- OpenBureau documentation is wrong? all numbers seem to be big endian after light testing and sectionType is an 8bit uint
+			log(3, "Got: %s", hexify(data))
+			while true do
+				local sectionType = protocol.getU8(data, 1)
+				local messageSize
+				if sectionType == 0 then
+					messageSize = 17 + protocol.getU32(data, 14)
+					bureau:handleGeneralMessage(string_sub(data, 1, messageSize), user)
+				elseif sectionType == 2 then
+					messageSize = 27
+					bureau:handlePositionUpdate(string_sub(data, 1, messageSize), user)
+				else
+					log(0, "Got invalid Section Type from %s(%d).", user.name, user.id)
+					return
+				end
+
+				data = string_sub(data, messageSize + 1)
+				if #data < 17 then
+					break
+				end
+			end
+		end)
+	end)
+
+	return bureau
+end
+
+--- Get the current number of users connected to the Bureau
+---@return number users
+function Bureau:getUserCount()
+	local userCount = 0
+	for _, _ in pairs(self.users) do
+		userCount = userCount + 1
+	end
+	return userCount
+end
+
+--- Broadcast a message to every client
+---@param cb fun(user: User): string|nil
+function Bureau:sendAll(cb)
+	for _, user in pairs(self.users) do
+		local msg = cb(user)
+		if msg then
+			user.client:send(msg)
+		end
+	end
+end
+
+---@type table<number, fun(bureau: Bureau, user: User, data: string, subtype: number): string|nil>
+local commonMessages = {
+	[protocol.commonTypes.APPL_SPECIFIC] = function() end,
+
+	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
+		local message = string_sub(data, 27)
+		-- Don't send empty messages.
+		if #message == 0 then return end
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "CHAT_SEND",
+			subtype = subtype,
+		}, message)
+	end,
+
+	[protocol.commonTypes.NAME_CHANGE] = function(bureau, user, data, subtype)
+		local name = string_sub(data, 27)
+		user.name = string_sub(name, 1, #name - 1)	-- Trunicate null character
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "NAME_CHANGE",
+			subtype = subtype,
+		}, name)
+	end,
+
+	[protocol.commonTypes.AVATAR_CHANGE] = function(bureau, user, data, subtype)
+		local avatar = string_sub(data, 27)
+		user.avatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "AVATAR_CHANGE",
+			subtype = subtype,
+		}, avatar)
+	end,
+
+	[protocol.commonTypes.TRANSFORM_UPDATE] = function(bureau, user, data, subtype)
+		local m = {}
+		for i = 0, 8 do
+			m[i + 1] = protocol.get32float(data, 27 + i * 4)
+		end
+		user.rotation:set(m)
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "TRANSFORM_UPDATE",
+			subtype = subtype,
+		}, string_sub(data, 27))
+
+	end,
+
+	[protocol.commonTypes.CHARACTER_UPDATE] = function(bureau, user, data, subtype)
+		local characterData = string_sub(data, 27)
+		user.characterData = characterData
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "CHARACTER_UPDATE",
+			subtype = subtype,
+		}, characterData)
+	end,
+
+	[protocol.commonTypes.VOICE_STATE] = function() end,
+	[protocol.commonTypes.UNNAMED_1] = function() end,
+
+	[protocol.commonTypes.PRIVATE_CHAT] = function(bureau, user, data, subtype)
+		local sender = bureau.users[protocol.getU32(data, 18)]
+		local recipient = bureau.users[protocol.getU32(data, 27)]
+
+		if not sender or not recipient then return end
+		local message = string_sub(data, 31)
+
+		return protocol.commonMessage({
+			id = user.id,
+			type = "PRIVATE_CHAT",
+			subtype = subtype,
+		}, string_format("%s%s",
+			protocol.fromU32(sender.id),
+			message
+		))
+	end,
+}
+
+---@type table<number, fun(bureau: Bureau, user: User, data: string)>
+local generalFunctions = {
+	[protocol.opcodes.CMSG_NEW_USER] = function(bureau, user, data)
+		local name = protocol.getString(data, 18)
+		local avatar = protocol.getString(data, 19 + #name)
+
+		user.name = name
+		user.avatar = avatar
+
+		log(1, "%s has Joined.", name)
+
+		local userJoinedContent = string_format("%s%s%s\0%s\0", protocol.fromU32(user.id), protocol.fromU32(user.id), avatar, name)
+		user.client:send(string_format("%s%s%s%s",
+			protocol.generalMessage({
+				id1 = 0,
+				id2 = user.id,
+				type = "SMSG_CLIENT_ID",
+			}, protocol.fromU32(user.id)),
+
+			protocol.generalMessage({
+				id1 = user.id,
+				id2 = user.id,
+				type = "SMSG_UNNAMED_1",
+			}, protocol.fromU32(1) .. protocol.fromU8(1)),
+
+			protocol.generalMessage({
+				id1 = user.id,
+				id2 = user.id,
+				type = "SMSG_USER_JOINED",
+			}, userJoinedContent),
+
+			protocol.generalMessage({
+				id1 = user.id,
+				id2 = user.id,
+				type = "SMSG_BROADCAST_ID",
+			}, protocol.fromU32(user.id))
+		))
+
+		local userCount = bureau:getUserCount()
+		---@diagnostic disable-next-line: redefined-local
+		bureau:sendAll(function(user)
+			return protocol.generalMessage({
+				id1 = 0,
+				id2 = user.id,
+				type = "SMSG_USER_COUNT",
+			}, protocol.fromU8(1) .. protocol.fromU32(userCount))
+		end)
+	end,
+
+	[protocol.opcodes.MSG_COMMON] = function(bureau, user, data)
+		local subtype = protocol.getU8(data, 26)
+		if subtype < 0 or subtype > 4 then
+			log(2, "Invalid Message Common subtype from %s(%d)", user.name, user.id)
+			return
+		end
+
+		local type = protocol.getU32(data, 22)
+		local func = commonMessages[type]
+		if not func then
+			log(2, "%s(%d) Sent an invalid MSG_COMMON type. (%d)", user.name, user.id, type)
+			return
+		end
+		local msg = func(bureau, user, data, subtype)
+		if msg then
+			if subtype == 0 or subtype == 1 then
+				bureau:sendAll(function(other)
+					if user == other then return end
+					return protocol.generalMessage({
+						id1 = other.id,
+						id2 = other.id,
+						type = "MSG_COMMON",
+					}, msg)
+				end)
+			elseif subtype == 2 or subtype == 3 then
+				local id = protocol.getU32(data, 18)
+				protocol.generalMessage({
+					id1 = id,
+					id2 = id,
+					type = "MSG_COMMON",
+				}, msg)
+			end
+		end
+	end,
+
+	[protocol.opcodes.CMSG_STATE_CHANGE] = function(bureau, user, data)
+		local state = protocol.getU8(data, 18)
+		user:emit("StateChange", state)
+		log(2, "%s(%d)'s state is now %s", user.name, user.id, state)
+	end,
+}
+
+--- Internal use only.
+---@param data string
+---@param user User
+---@protected
+function Bureau:handleGeneralMessage(data, user)
+	local func = generalFunctions[protocol.getU32(data, 10)]
+	if not func then log(2, "Unhandled opcode %d", protocol.getU32(data, 10)) return end
+	func(self, user, data)
+end
+
+--- Internal use only.
+---@param data string
+---@param user User
+---@protected
+function Bureau:handlePositionUpdate(data, user)
+	user.position:set(
+		protocol.get32float(data, 14),
+		protocol.get32float(data, 18),
+		protocol.get32float(data, 22)
+	)
+
+	self:sendAll(function(other)
+		if user == other then return end
+		local inAura = user:checkAura(other)
+
+		if inAura then
+			if not user.aura[other] then
+				log(2, "%s(%d) entered %s(%d)'s Aura.", user.name, user.id, other.name, other.id)
+				user:addAura(other)
+			end
+
+			other.client:send(protocol.positionUpdate(user, other))
+		elseif user.aura[other] then
+			log(2, "%s(%d) left %s(%d)'s Aura.", user.name, user.id, other.name, other.id)
+			user:removeAura(other)
+		end
+	end)
+end
+
+--- Run the Bureau's Loop.
+function Bureau:run()
+	self.loop:run()
+end
+
+return Bureau
+

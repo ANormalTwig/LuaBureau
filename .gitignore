@@ -1,0 +1,7 @@
+.luarc.json
+
+/luarocks
+/lua
+/lua_modules
+/.luarocks
+
