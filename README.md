@@ -1,6 +1,6 @@
 # LuaBureau
 
-<img src="https://github.com/ANormalTwig/LuaBureau/assets/78218557/4f8b02f0-9b10-45b2-bce1-f18de3e350fb" width="200" height="200">
+<img src="https://raw.githubusercontent.com/ANormalTwig/LuaBureau/main/icon.png" width="200" height="200">
 
 An implementation of the [VSCP Protocol](https://github.com/LeadRDRK/OpenBureau/blob/main/docs/Protocol.md) in Lua with [luasocket](https://github.com/lunarmodules/luasocket).
 
