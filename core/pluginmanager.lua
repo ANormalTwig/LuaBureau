@@ -5,7 +5,7 @@ local log = require("util.logger")
 local plugins = {}
 for file in lfs.dir("./plugins") do
 	local type = lfs.attributes(file, "mode")
-	if type == "file" then
+	if type == "file" and string.sub(file, #file - 3, #file) == ".lua" then
 		local success, ret = pcall(dofile, file)
 		if success then
 			table.insert(plugins, ret)
