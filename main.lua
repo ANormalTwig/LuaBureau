@@ -33,6 +33,7 @@ else
 end
 
 local bureau = require("bureau.bureau"):new()
+require("core.pluginmanager")(bureau)
 bureau:listen(Config.port)
 bureau:run()
 
