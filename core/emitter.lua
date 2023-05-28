@@ -14,6 +14,7 @@ end
 ---@param cb function Callback
 ---@return number index
 function Emitter:on(name, cb)
+	name = name:lower()
 	if not self.listeners[name] then
 		self.listeners[name] = {}
 	end
@@ -28,6 +29,7 @@ end
 ---@param cb function Callback
 ---@return number index
 function Emitter:once(name, cb)
+	name = name:lower()
 	if not self.listeners[name] then
 		self.listeners[name] = {}
 	end
@@ -44,6 +46,7 @@ end
 ---@param name string Event name
 ---@param index number Callback index
 function Emitter:removeListener(name, index)
+	name = name:lower()
 	if not self.listeners[name] then return end
 	table.remove(self.listeners[name], index)
 end
@@ -52,6 +55,7 @@ end
 ---@param name string
 ---@vararg any
 function Emitter:emit(name, ...)
+	name = name:lower()
 	if not self.listeners[name] then return end
 	for _, cb in ipairs(self.listeners[name]) do
 		cb(...)

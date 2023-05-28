@@ -21,7 +21,8 @@ Bureau.__index = Bureau
 setmetatable(Bureau, Server)
 
 --- Creates a new Bureau object.
-function Bureau:new()
+---@param max number? Max amount of users that can be connected.
+function Bureau:new(max)
 	local bureau = getmetatable(self):new()
 	setmetatable(bureau, self)
 
@@ -29,16 +30,16 @@ function Bureau:new()
 	local loop = Loop:new()
 	loop:add(bureau)
 	bureau.loop = loop
-	bureau.pool = Pool:new(0xFFFF)
+	bureau.pool = Pool:new(max or 0xFF)
 
-	bureau:on("connect", function(client)
+	bureau:on("Connect", function(client)
 		---@cast client Client
 		loop:add(client)
 
 		---@type User
 		local user
 
-		client:on("close", function()
+		client:on("Close", function()
 			if not user then return end
 
 			for other in pairs(user.aura) do
@@ -47,6 +48,8 @@ function Bureau:new()
 
 			bureau.pool:freeID(user.id)
 			bureau.users[user.id] = nil
+
+			bureau:emit("UserLeft", user)
 
 			local userCount = bureau:getUserCount()
 			---@diagnostic disable-next-line: redefined-local
@@ -59,7 +62,7 @@ function Bureau:new()
 			end)
 		end)
 
-		client:on("data", function(data)
+		client:on("Data", function(data)
 			if not user then
 				if not data == "hello\1\1" then
 					client:close()
@@ -76,6 +79,8 @@ function Bureau:new()
 				client:send(helloResponse)
 				user = User:new(id, client)
 				bureau.users[user.id] = user
+
+				bureau:emit("UserJoined", user)
 
 				return
 			end
@@ -140,20 +145,26 @@ local commonMessages = {
 	[protocol.commonTypes.APPL_SPECIFIC] = function() end,
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
-		local message = string_sub(data, 27)
+		local content = string_sub(data, 27)
+		local message = string_sub(content, 1, #content - 1) -- Trunicate null character 
+
 		-- Don't send empty messages.
 		if #message == 0 then return end
+
+		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
 
 		return protocol.commonMessage({
 			id = user.id,
 			type = "CHAT_SEND",
 			subtype = subtype,
-		}, message)
+		}, content)
 	end,
 
 	[protocol.commonTypes.NAME_CHANGE] = function(bureau, user, data, subtype)
 		local name = string_sub(data, 27)
 		user.name = string_sub(name, 1, #name - 1)	-- Trunicate null character
+
+		user:emit("NameChange")
 
 		return protocol.commonMessage({
 			id = user.id,
@@ -165,6 +176,8 @@ local commonMessages = {
 	[protocol.commonTypes.AVATAR_CHANGE] = function(bureau, user, data, subtype)
 		local avatar = string_sub(data, 27)
 		user.avatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
+
+		user:emit("AvatarChange")
 
 		return protocol.commonMessage({
 			id = user.id,
@@ -179,6 +192,14 @@ local commonMessages = {
 			m[i + 1] = protocol.get32float(data, 27 + i * 4)
 		end
 		user.rotation:set(m)
+		user.position:set(
+			protocol.get32float(data, 63),
+			protocol.get32float(data, 67),
+			protocol.get32float(data, 71)
+		)
+
+		user:emit("TransformUpdate")
+		user:emit("PositionUpdate")
 
 		return protocol.commonMessage({
 			id = user.id,
@@ -191,6 +212,8 @@ local commonMessages = {
 	[protocol.commonTypes.CHARACTER_UPDATE] = function(bureau, user, data, subtype)
 		local characterData = string_sub(data, 27)
 		user.characterData = characterData
+
+		user:emit("CharacterUpdate")
 
 		return protocol.commonMessage({
 			id = user.id,
@@ -208,6 +231,8 @@ local commonMessages = {
 
 		if not sender or not recipient then return end
 		local message = string_sub(data, 31)
+
+		user:emit("PrivateMessage", recipient, message)
 
 		return protocol.commonMessage({
 			id = user.id,
@@ -331,6 +356,8 @@ function Bureau:handlePositionUpdate(data, user)
 		protocol.get32float(data, 18),
 		protocol.get32float(data, 22)
 	)
+
+	user:emit("PositionUpdate")
 
 	self:sendAll(function(other)
 		if user == other then return end

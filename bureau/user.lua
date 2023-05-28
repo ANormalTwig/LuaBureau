@@ -44,6 +44,9 @@ function User:addAura(other)
 	self.aura[other] = true
 	other.aura[self] = true
 
+	self:emit("EnteredAura", other)
+	other:emit("EnteredAura", self)
+
 	self.client:send(string_format("%s%s",
 		protocol.generalMessage({
 			id1 = self.id,
@@ -94,6 +97,9 @@ end
 function User:removeAura(other)
 	self.aura[other] = nil
 	other.aura[self] = nil
+
+	self:emit("LeftAura", other)
+	other:emit("LeftAura", self)
 
 	if not self.client.closed then
 		self.client:send(protocol.generalMessage({
