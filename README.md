@@ -23,6 +23,7 @@ $ luajit main.lua [options]
 | Option | Purpose | Default |
 |--------|---------|---------|
 | -c --config | Specify a config file (Discards all other comand-line arguments if set | |
+| -u --max-users | Max users of a bureau. | 255 |
 | -p --port | Specify the port for the server to run on. | 5126 |
 | -r --aura-radius | Specify the distance at which users can see each other | 100 |
 | -v --verbose | Set verbosity level | 0 |
@@ -33,6 +34,7 @@ $ luajit main.lua [options]
 Config file is a list of key=value entries
 
 ```
+max_users=255
 port=5126
 aura_radius=100
 verbosity=0
