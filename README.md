@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/ANormalTwig/LuaBureau/main/icon.png" width="200" height="200">
 
-An implementation of the [VSCP Protocol](https://github.com/LeadRDRK/OpenBureau/blob/main/docs/Protocol.md) in Lua with [luasocket](https://github.com/lunarmodules/luasocket).
+An implementation of [VSCP](https://github.com/LeadRDRK/OpenBureau/blob/main/docs/Protocol.md) in Lua with [luasocket](https://github.com/lunarmodules/luasocket).
 
 ## Dependencies
 
