@@ -4,6 +4,9 @@ local argparse = require("util.argparse")
 
 local parser = argparse("script")
 parser:option("-c --config", "Config file. (Discards all other command-line arguments if set)")
+parser:option("-u --max-users", "Max users of a bureau.")
+	:convert(tonumber)
+	:default(0xFF)
 parser:option("-p --port", "Port number.")
 	:convert(tonumber)
 	:default(5126)
@@ -23,6 +26,7 @@ if args.config then
 	local config = file:read("*a")
 	Config = require("util.config")(config, {
 		aura_radius = {"number", 100},
+		max_users = {"number", 0xFF},
 		port = {"number", 5126},
 		verbosity = {"number", 0},
 		wls = {"boolean", false},
@@ -32,7 +36,7 @@ else
 	Config = args
 end
 
-local bureau = require("bureau.bureau"):new()
+local bureau = require("bureau.bureau"):new(Config.max_users)
 require("core.pluginmanager")(bureau)
 bureau:listen(Config.port)
 bureau:run()
