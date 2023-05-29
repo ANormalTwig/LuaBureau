@@ -142,7 +142,13 @@ end
 
 ---@type table<number, fun(bureau: Bureau, user: User, data: string, subtype: number): string|nil>
 local commonMessages = {
-	[protocol.commonTypes.APPL_SPECIFIC] = function() end,
+	[protocol.commonTypes.APPL_SPECIFIC] = function(_, user, data, subtype)
+		return protocol.commonMessage({
+			id = user.id,
+			type = "APPL_SPECIFIC",
+			subtype = subtype,
+		}, string_sub(data, 27))
+	end,
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
 		local content = string_sub(data, 27)
@@ -151,6 +157,7 @@ local commonMessages = {
 		-- Don't send empty messages.
 		if #message == 0 then return end
 
+		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
 		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
 
 		return protocol.commonMessage({
@@ -160,7 +167,7 @@ local commonMessages = {
 		}, content)
 	end,
 
-	[protocol.commonTypes.NAME_CHANGE] = function(bureau, user, data, subtype)
+	[protocol.commonTypes.NAME_CHANGE] = function(_, user, data, subtype)
 		local name = string_sub(data, 27)
 		user.name = string_sub(name, 1, #name - 1)	-- Trunicate null character
 
@@ -173,7 +180,7 @@ local commonMessages = {
 		}, name)
 	end,
 
-	[protocol.commonTypes.AVATAR_CHANGE] = function(bureau, user, data, subtype)
+	[protocol.commonTypes.AVATAR_CHANGE] = function(_, user, data, subtype)
 		local avatar = string_sub(data, 27)
 		user.avatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
 
@@ -186,7 +193,7 @@ local commonMessages = {
 		}, avatar)
 	end,
 
-	[protocol.commonTypes.TRANSFORM_UPDATE] = function(bureau, user, data, subtype)
+	[protocol.commonTypes.TRANSFORM_UPDATE] = function(_, user, data, subtype)
 		local m = {}
 		for i = 0, 8 do
 			m[i + 1] = protocol.get32float(data, 27 + i * 4)
@@ -209,7 +216,7 @@ local commonMessages = {
 
 	end,
 
-	[protocol.commonTypes.CHARACTER_UPDATE] = function(bureau, user, data, subtype)
+	[protocol.commonTypes.CHARACTER_UPDATE] = function(_, user, data, subtype)
 		local characterData = string_sub(data, 27)
 		user.characterData = characterData
 
@@ -232,6 +239,7 @@ local commonMessages = {
 		if not sender or not recipient then return end
 		local message = string_sub(data, 31)
 
+		bureau:emit("PrivateMessage", user, recipient, message)
 		user:emit("PrivateMessage", recipient, message)
 
 		return protocol.commonMessage({
