@@ -4,6 +4,7 @@ local socket = require("socket")
 
 ---@class Server: Emitter
 ---@field clients table<Client, boolean>
+---@field port number
 ---@field socket userdata
 local Server = {}
 Server.__index = Server
@@ -27,6 +28,7 @@ function Server:listen(port, backlog)
 	sock:settimeout(0)
 
 	self.socket = sock
+	self.port = port
 end
 
 --- Closes server socket

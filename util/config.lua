@@ -12,7 +12,7 @@ return function(str, layout)
 		end
 	end
 
-	for k, v in string.gmatch(str, "(%S)=(%S)") do
+	for k, v in string.gmatch(str, "(%S+)=(%S+)") do
 		local lk = k:lower()
 		local entry = layout[lk]
 		if entry then

@@ -27,7 +27,7 @@ $ luajit main.lua [options]
 | -p --port | Specify the port for the server to run on. | 5126 |
 | -r --aura-radius | Specify the distance at which users can see each other | 100 |
 | -v --verbose | Set verbosity level | 0 |
-| -w --wls | Run in WLS mode (Not Implemented) 0 = false, 1 = true | 0 |
+| -w --wls | Run in WLS mode. 0 = false, 1 = true | 0 |
 
 # Config File
 
