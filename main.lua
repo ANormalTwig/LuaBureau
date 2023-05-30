@@ -1,6 +1,7 @@
 assert(jit, "This project is intended to be ran with LuaJIT")
 
 local argparse = require("util.argparse")
+local loop = require("core.loop")
 
 local parser = argparse("script")
 parser:option("-a --bureau-address", "Address of the bureau used in the WLS server.")
@@ -49,13 +50,11 @@ require("util.printtable")(Config)
 if Config.wls then
 	local wls = require("wls.wls"):new()
 	wls:listen(Config.port)
-	wls:run()
-
-	return
+else
+	local bureau = require("bureau.bureau"):new(Config.max_users)
+	require("core.pluginmanager")(bureau)
+	bureau:listen(Config.port)
 end
 
-local bureau = require("bureau.bureau"):new(Config.max_users)
-require("core.pluginmanager")(bureau)
-bureau:listen(Config.port)
-bureau:run()
+loop.run()
 

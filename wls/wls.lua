@@ -3,7 +3,6 @@ local log = require("util.logger")
 local string_format = string.format
 
 local Bureau = require("bureau.bureau")
-local Loop = require("core.loop")
 local Pool = require("core.pool")
 local Server = require("core.server")
 local Timer = require("core.timer")
@@ -12,7 +11,6 @@ local Timer = require("core.timer")
 ---@field bureaus table<string, table<Bureau, boolean>>
 ---@field pool Pool
 ---@field totalBureaus number
----@field loop Loop
 local WLS = {}
 WLS.__index = WLS
 setmetatable(WLS, Server)
@@ -24,17 +22,12 @@ function WLS:new()
 	wls.bureaus = {}
 	wls.totalBureaus = 0
 
-	wls.loop = Loop:new()
-	wls.loop:add(wls)
-
 	wls.pool = Pool:new(Config.max_bureaus)
 
 	wls:on("Connect", function(client)
 		---@cast client Client
-		wls.loop:add(client)
 
 		local timer = Timer:new(10)
-		wls.loop:add(timer)
 		timer:on("Timeout", function()
 			client:close()
 		end)
@@ -86,7 +79,6 @@ end
 
 function WLS:newBureau(worldName)
 	local bureau = Bureau:new(Config.max_users)
-	self.loop:add(bureau.loop)
 	self.totalBureaus = self.totalBureaus + 1
 
 	loadPlugins(bureau)
@@ -101,7 +93,6 @@ function WLS:newBureau(worldName)
 	end)
 
 	local timer = Timer:new(10)
-	self.loop:add(timer)
 
 	bureau:on("UserLeft", function()
 		if bureau:getUserCount() == 0 then
@@ -119,11 +110,6 @@ function WLS:newBureau(worldName)
 	end)
 
 	return bureau
-end
-
---- Run the WLS's Loop.
-function WLS:run()
-	self.loop:run()
 end
 
 return WLS

@@ -1,3 +1,5 @@
+local loop = require("core.loop")
+
 local Emitter = require("core.emitter")
 local socket = require("socket")
 
@@ -12,14 +14,15 @@ setmetatable(Client, Emitter)
 ---@return Client TCPclient.
 ---@param sock userdata? Socket to use instead of creating a new one.
 function Client:new(sock)
-	local newObject = getmetatable(self):new()
+	local client = setmetatable(getmetatable(self):new(), self)
+	loop.add(client)
 
 	if sock then
 		sock:settimeout(0)
-		newObject.socket = sock
+		client.socket = sock
 	end
 
-	return setmetatable(newObject, self)
+	return client
 end
 
 --- Connects the client to a TCP server

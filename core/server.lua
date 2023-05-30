@@ -1,3 +1,5 @@
+local loop = require("core.loop")
+
 local Client = require("core.client")
 local Emitter = require("core.emitter")
 local socket = require("socket")
@@ -13,11 +15,12 @@ setmetatable(Server, Emitter)
 --- Creates a new TCP server.
 ---@return Server TCPserver.
 function Server:new()
-	local server = getmetatable(self):new()
+	local server = setmetatable(getmetatable(self):new(), self)
+	loop.add(server)
 
 	server.clients = {}
 
-	return setmetatable(server, self)
+	return server
 end
 
 --- Listen to a port
@@ -38,7 +41,7 @@ function Server:close()
 	self._done = true
 end
 
---- Broadcast messages to every socket that isnt in the omitlist
+--- Broadcast messages to every socket
 ---@param cb fun(client: Client)
 function Server:broadcast(cb)
 	for client, _ in pairs(self.clients) do

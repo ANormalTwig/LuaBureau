@@ -1,6 +1,7 @@
-local Emitter = require("core.emitter")
-
+local loop = require("core.loop")
 local os_difftime, os_time = os.difftime, os.time
+
+local Emitter = require("core.emitter")
 
 ---@class Timer: Emitter
 ---@field looping boolean
@@ -17,9 +18,12 @@ setmetatable(Timer, Emitter)
 ---@return Timer
 function Timer:new(timeout, looping)
 	local timer = setmetatable(getmetatable(self):new(), self)
+	loop.add(timer)
+
 	timer.looping = looping and true or false
 	timer.timeout = timeout
 	timer.startTime = os_time()
+
 	return timer
 end
 

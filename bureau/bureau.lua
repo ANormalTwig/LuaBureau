@@ -1,7 +1,6 @@
 local log = require("util.logger")
 local protocol = require("bureau.protocol")
 
-local Loop = require("core.loop")
 local Pool = require("core.pool")
 local Server = require("core.server")
 local User = require("bureau.user")
@@ -14,7 +13,6 @@ local function hexify(str)
 end
 ---@class Bureau: Server
 ---@field users table<number, User>
----@field loop Loop
 ---@field pool Pool
 local Bureau = {}
 Bureau.__index = Bureau
@@ -27,14 +25,10 @@ function Bureau:new(max)
 	setmetatable(bureau, self)
 
 	bureau.users = {}
-	local loop = Loop:new()
-	loop:add(bureau)
-	bureau.loop = loop
 	bureau.pool = Pool:new(max or 0xFF)
 
 	bureau:on("Connect", function(client)
 		---@cast client Client
-		loop:add(client)
 
 		---@type User
 		local user
