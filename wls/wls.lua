@@ -1,11 +1,12 @@
+local loadPlugins = require("core.pluginmanager")
+local log = require("util.logger")
+local string_format = string.format
+
 local Bureau = require("bureau.bureau")
 local Loop = require("core.loop")
 local Pool = require("core.pool")
 local Server = require("core.server")
 local Timer = require("core.timer")
-
-local log = require("util.logger")
-local string_format = string.format
 
 ---@class WLS: Server
 ---@field bureaus table<string, table<Bureau, boolean>>
@@ -87,6 +88,8 @@ function WLS:newBureau(worldName)
 	local bureau = Bureau:new(Config.max_users)
 	self.loop:add(bureau.loop)
 	self.totalBureaus = self.totalBureaus + 1
+
+	loadPlugins(bureau)
 
 	local id = self.pool:getID()
 	bureau:listen(Config.port + id)
