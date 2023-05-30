@@ -79,17 +79,16 @@ function Bureau:new(max)
 				return
 			end
 
-			local id = protocol.getU32(data, 2)
-			if id ~= user.id then
-				log(2, "ID Mismatch from %s(%d).", user.name, user.id)
-				return
-			end
-
 			-- https://github.com/LeadRDRK/OpenBureau/blob/main/docs/Protocol.md
 			-- OpenBureau documentation is wrong? all numbers seem to be big endian after light testing and sectionType is an 8bit uint
 			log(3, "Got: %s", hexify(data))
-			while true do
+			while #data >= 17 do
 				local sectionType = protocol.getU8(data, 1)
+				local id = protocol.getU32(data, 2)
+				if id ~= user.id then
+					log(2, "ID Mismatch from %s(%d).", user.name, user.id)
+					return
+				end
 				local messageSize
 				if sectionType == 0 then
 					messageSize = 17 + protocol.getU32(data, 14)
@@ -103,9 +102,6 @@ function Bureau:new(max)
 				end
 
 				data = string_sub(data, messageSize + 1)
-				if #data < 17 then
-					break
-				end
 			end
 		end)
 	end)
@@ -377,11 +373,6 @@ function Bureau:handlePositionUpdate(data, user)
 			user:removeAura(other)
 		end
 	end)
-end
-
---- Run the Bureau's Loop.
-function Bureau:run()
-	self.loop:run()
 end
 
 return Bureau

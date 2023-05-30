@@ -61,7 +61,7 @@ end
 ---@return Bureau|nil
 function WLS:getBureau(worldName)
 	if not self.bureaus[worldName] then
-		self.bureaus[worldName] = {}
+		log(1, "Generating a new Buearu")
 		return self:newBureau(worldName)
 	end
 
@@ -72,8 +72,8 @@ function WLS:getBureau(worldName)
 	end
 
 	if self.totalBureaus < Config.max_bureaus then
-		log(0, "Generating a new Buearu")
-		return self:newBureau()
+		log(1, "Generating a new Buearu")
+		return self:newBureau(worldName)
 	end
 end
 
@@ -85,6 +85,9 @@ function WLS:newBureau(worldName)
 
 	local id = self.pool:getID()
 	bureau:listen(Config.port + id)
+	if not self.bureaus[worldName] then
+		self.bureaus[worldName] = {}
+	end
 	self.bureaus[worldName][bureau] = true
 	bureau:on("Close", function()
 		self.pool:freeID(id)
@@ -105,7 +108,7 @@ function WLS:newBureau(worldName)
 	end)
 
 	timer:on("Timeout", function()
-		log(0, "Bureau Timed out.")
+		log(1, "Bureau closed due to lack of immediate user connection.")
 		bureau:close()
 	end)
 

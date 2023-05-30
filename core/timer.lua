@@ -33,11 +33,16 @@ function Timer:stop()
 end
 
 function Timer:poll()
-	if os_difftime(os_time(), self.startTime) > self.timeout then
+	local currentTime = os_time()
+	if os_difftime(currentTime, self.startTime) > self.timeout then
 		self:emit("Timeout")
-		if not self.looping then
-			self._done = true
+
+		if self.looping then
+			self.startTime = currentTime
+			return
 		end
+
+		self._done = true
 	end
 end
 

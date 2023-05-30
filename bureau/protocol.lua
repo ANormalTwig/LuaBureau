@@ -1,4 +1,5 @@
 local bit_band, bit_rshift = bit.band, bit.rshift
+local math_floor = math.floor
 local string_byte, string_char, string_format, string_match = string.byte, string.char, string.format, string.match
 
 local function getU8(str, i)
@@ -48,12 +49,18 @@ local function fromU16(n)
 	)
 end
 
-local function fromU32(n)
+local function from32(n)
 	if n < 0 then n = n - 0x100000000 end
 	return string_char(bit_rshift(n, 24) % 0x100, bit_rshift(n, 16) % 0x100, bit_rshift(n, 8) % 0x100, n % 0x100)
 end
 
-local from32 = fromU32
+local fromU32 = from32
+
+local function from32float(n)
+	n = math_floor(n * 0xFFFF)
+	if n < 0 then n = n - 0x100000000 end
+	return string_char(bit_rshift(n, 24) % 0x100, bit_rshift(n, 16) % 0x100, bit_rshift(n, 8) % 0x100, n % 0x100)
+end
 
 local function getString(str, i)
 	return string_match(str, "(.-)%z", i)
@@ -161,6 +168,7 @@ return {
 	get32 = get32,
 
 	get32float = get32float,
+	from32float = from32float,
 
 	from32 = from32,
 

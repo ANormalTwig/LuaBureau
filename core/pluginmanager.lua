@@ -3,7 +3,8 @@ local lfs = require("lfs")
 local log = require("util.logger")
 
 local plugins = {}
-for file in lfs.dir("./plugins") do
+for file in lfs.dir("plugins") do
+	file = "plugins/" .. file
 	local type = lfs.attributes(file, "mode")
 	if type == "file" and string.sub(file, #file - 3, #file) == ".lua" then
 		local success, ret = pcall(dofile, file)
