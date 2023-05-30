@@ -55,8 +55,8 @@ function User:addAura(other)
 		}, string_format("%s%s%s\0%s\0",
 			protocol.fromU32(other.id),
 			protocol.fromU32(other.id),
-			self.avatar,
-			self.name
+			other.avatar,
+			other.name
 		)),
 		other.characterData and protocol.generalMessage({
 			id1 = self.id,
