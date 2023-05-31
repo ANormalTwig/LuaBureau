@@ -28,9 +28,10 @@ end
 --- Loads all valid plugins in the 'plugin' folder on the specified bureau
 ---@param bureau Bureau
 ---@param wls WLS?
-return function(bureau, wls)
+---@param worldName string?
+return function(bureau, wls, worldName)
 	for _, plugin in ipairs(plugins) do
-		plugin(bureau, wls)
+		plugin(bureau, wls, worldName)
 	end
 end
 

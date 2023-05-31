@@ -81,7 +81,7 @@ function WLS:newBureau(worldName)
 	local bureau = Bureau:new(Config.max_users)
 	self.totalBureaus = self.totalBureaus + 1
 
-	loadPlugins(bureau, self)
+	loadPlugins(bureau, self, worldName)
 
 	local id = self.pool:getID()
 	bureau:listen(Config.port + id)
