@@ -1,5 +1,7 @@
+local socket = require("socket")
+
 local loop = require("core.loop")
-local os_difftime, os_time = os.difftime, os.time
+local os_difftime, gettime = os.difftime, socket.gettime
 
 local Emitter = require("core.emitter")
 
@@ -22,7 +24,7 @@ function Timer:new(timeout, looping)
 
 	timer.looping = looping and true or false
 	timer.timeout = timeout
-	timer.startTime = os_time()
+	timer.startTime = gettime()
 
 	return timer
 end
@@ -33,8 +35,8 @@ function Timer:stop()
 end
 
 function Timer:poll()
-	local currentTime = os_time()
-	if os_difftime(currentTime, self.startTime) > self.timeout then
+	local currentTime = gettime()
+	if currentTime - self.startTime > self.timeout then
 		self:emit("Timeout")
 
 		if self.looping then
