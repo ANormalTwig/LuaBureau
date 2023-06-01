@@ -15,6 +15,11 @@ function Vector3:new(x, y, z)
 	return setmetatable({x = x or 0, y = y or 0, z = z or 0}, self)
 end
 
+local string_format = string.format
+function Vector3:__tostring()
+	return string_format("[%f, %f, %f]", self.x, self.y, self.z)
+end
+
 function Vector3.__add(a, b)
 	return Vector3:new(a.x + b.x, a.y + b.y, a.z + b.z)
 end
@@ -29,6 +34,38 @@ end
 
 function Vector3.__div(a, b)
 	return Vector3:new(a.x / b.x, a.y / b.y, a.z / b.z)
+end
+
+--- Adds v to self
+---@param v Vector3
+function Vector3:add(v)
+	self.x = self.x + v.x
+	self.x = self.x + v.x
+	self.x = self.x + v.x
+end
+
+--- Subtracts v from self
+---@param v Vector3
+function Vector3:sub(v)
+	self.x = self.x - v.x
+	self.x = self.x - v.x
+	self.x = self.x - v.x
+end
+
+--- Multipies self by v
+---@param v Vector3
+function Vector3:mul(v)
+	self.x = self.x * v.x
+	self.x = self.x * v.x
+	self.x = self.x * v.x
+end
+
+--- Divides self by v
+---@param v Vector3
+function Vector3:div(v)
+	self.x = self.x / v.x
+	self.x = self.x / v.x
+	self.x = self.x / v.x
 end
 
 function Vector3:set(x, y, z)
