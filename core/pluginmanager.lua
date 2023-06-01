@@ -5,18 +5,18 @@ local log = require("util.logger")
 local plugins = {}
 for file in lfs.dir("plugins") do
 	file = "plugins/" .. file
-	local type = lfs.attributes(file, "mode")
-	if type == "file" and string.sub(file, #file - 3, #file) == ".lua" then
+	local ftype = lfs.attributes(file, "mode")
+	if ftype == "file" and string.sub(file, #file - 3, #file) == ".lua" then
 		local success, ret = pcall(dofile, file)
 		if success then
 			table.insert(plugins, ret)
 		else
 			log(0, "Couldn't load plugin %s", file)
 		end
-	elseif type == "directory" then
+	elseif ftype == "directory" then
 		if lfs.attributes(file .. "/init.lua", "mode") then
 			local success, ret = pcall(dofile, file .. "/init.lua")
-			if success then
+			if success and type(ret) == "function" then
 				table.insert(plugins, ret)
 			else
 				log(0, "Couldn't load plugin %s", file)
