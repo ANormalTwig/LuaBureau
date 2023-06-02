@@ -22,6 +22,8 @@ $ luajit main.lua [options]
 
 | Option | Purpose | Default |
 |--------|---------|---------|
+| -a --bureau-address | Address of the bureau used in the WLS server. | 127.0.0.1 |
+| -b --max-bureaus | Max bureaus. | 10 |
 | -c --config | Specify a config file (Discards all other comand-line arguments if set | |
 | -u --max-users | Max users of a bureau. | 255 |
 | -p --port | Specify the port for the server to run on. | 5126 |
@@ -34,9 +36,12 @@ $ luajit main.lua [options]
 Config file is a list of key=value entries
 
 ```
+bureau_address=127.0.0.1
+max_bureaus=10
 max_users=255
 port=5126
 aura_radius=100
 verbosity=0
 wls=0
 ```
+
