@@ -48,11 +48,12 @@ function Bureau:new(max)
 			local userCount = bureau:getUserCount()
 			---@diagnostic disable-next-line: redefined-local
 			bureau:sendAll(function(user)
-				return protocol.generalMessage({
-					id1 = 0,
-					id2 = user.id,
-					type = "SMSG_USER_COUNT",
-				}, protocol.fromU8(1) .. protocol.fromU32(userCount))
+				return protocol.generalMessage(
+					0, user.id,
+					"SMSG_USER_COUNT",
+
+					protocol.fromU8(1) .. protocol.fromU32(userCount)
+				)
 			end)
 		end)
 
@@ -133,11 +134,13 @@ end
 ---@type table<number, fun(bureau: Bureau, user: User, data: string, subtype: number): string|nil>
 local commonMessages = {
 	[protocol.commonTypes.APPL_SPECIFIC] = function(_, user, data, subtype)
-		return protocol.commonMessage({
-			id = user.id,
-			type = "APPL_SPECIFIC",
-			subtype = subtype,
-		}, string_sub(data, 27))
+		return protocol.commonMessage(
+			user.id,
+			"APPL_SPECIFIC",
+			subtype,
+
+			string_sub(data, 27)
+		)
 	end,
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
@@ -150,11 +153,13 @@ local commonMessages = {
 		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
 		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "CHAT_SEND",
-			subtype = subtype,
-		}, content)
+		return protocol.commonMessage(
+			user.id,
+			"CHAT_SEND",
+			subtype,
+
+			content
+		)
 	end,
 
 	[protocol.commonTypes.NAME_CHANGE] = function(_, user, data, subtype)
@@ -163,11 +168,13 @@ local commonMessages = {
 
 		user:emit("NameChange")
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "NAME_CHANGE",
-			subtype = subtype,
-		}, name)
+		return protocol.commonMessage(
+			user.id,
+			"NAME_CHANGE",
+			subtype,
+
+			name
+		)
 	end,
 
 	[protocol.commonTypes.AVATAR_CHANGE] = function(_, user, data, subtype)
@@ -176,11 +183,13 @@ local commonMessages = {
 
 		user:emit("AvatarChange")
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "AVATAR_CHANGE",
-			subtype = subtype,
-		}, avatar)
+		return protocol.commonMessage(
+			user.id,
+			"AVATAR_CHANGE",
+			subtype,
+
+			avatar
+		)
 	end,
 
 	[protocol.commonTypes.TRANSFORM_UPDATE] = function(_, user, data, subtype)
@@ -198,12 +207,13 @@ local commonMessages = {
 		user:emit("TransformUpdate")
 		user:emit("PositionUpdate")
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "TRANSFORM_UPDATE",
-			subtype = subtype,
-		}, string_sub(data, 27))
+		return protocol.commonMessage(
+			user.id,
+			"TRANSFORM_UPDATE",
+			subtype,
 
+			string_sub(data, 27)
+		)
 	end,
 
 	[protocol.commonTypes.CHARACTER_UPDATE] = function(_, user, data, subtype)
@@ -212,11 +222,13 @@ local commonMessages = {
 
 		user:emit("CharacterUpdate")
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "CHARACTER_UPDATE",
-			subtype = subtype,
-		}, characterData)
+		return protocol.commonMessage(
+			user.id,
+			"CHARACTER_UPDATE",
+			subtype,
+
+			characterData
+		)
 	end,
 
 	[protocol.commonTypes.VOICE_STATE] = function() end,
@@ -232,14 +244,16 @@ local commonMessages = {
 		bureau:emit("PrivateMessage", user, recipient, message)
 		user:emit("PrivateMessage", recipient, message)
 
-		return protocol.commonMessage({
-			id = user.id,
-			type = "PRIVATE_CHAT",
-			subtype = subtype,
-		}, string_format("%s%s",
-			protocol.fromU32(sender.id),
-			message
-		))
+		return protocol.commonMessage(
+			user.id,
+			"PRIVATE_CHAT",
+			subtype,
+
+			string_format("%s%s",
+				protocol.fromU32(sender.id),
+				message
+			)
+		)
 	end,
 }
 
@@ -256,39 +270,48 @@ local generalFunctions = {
 
 		local userJoinedContent = string_format("%s%s%s\0%s\0", protocol.fromU32(user.id), protocol.fromU32(user.id), avatar, name)
 		user.client:send(string_format("%s%s%s%s",
-			protocol.generalMessage({
-				id1 = 0,
-				id2 = user.id,
-				type = "SMSG_CLIENT_ID",
-			}, protocol.fromU32(user.id)),
+			protocol.generalMessage(
+				0,
+				user.id,
+				"SMSG_CLIENT_ID",
+				protocol.fromU32(user.id)
+			),
 
-			protocol.generalMessage({
-				id1 = user.id,
-				id2 = user.id,
-				type = "SMSG_UNNAMED_1",
-			}, protocol.fromU32(1) .. protocol.fromU8(1)),
+			protocol.generalMessage(
+				user.id,
+				user.id,
+				"SMSG_UNNAMED_1",
 
-			protocol.generalMessage({
-				id1 = user.id,
-				id2 = user.id,
-				type = "SMSG_USER_JOINED",
-			}, userJoinedContent),
+				protocol.fromU32(1) .. protocol.fromU8(1)
+			),
 
-			protocol.generalMessage({
-				id1 = user.id,
-				id2 = user.id,
-				type = "SMSG_BROADCAST_ID",
-			}, protocol.fromU32(user.id))
+			protocol.generalMessage(
+				user.id,
+				user.id,
+				"SMSG_USER_JOINED",
+
+				userJoinedContent
+			),
+
+			protocol.generalMessage(
+				user.id,
+				user.id,
+				"SMSG_BROADCAST_ID",
+
+				protocol.fromU32(user.id)
+			)
 		))
 
 		local userCount = bureau:getUserCount()
 		---@diagnostic disable-next-line: redefined-local
 		bureau:sendAll(function(user)
-			return protocol.generalMessage({
-				id1 = 0,
-				id2 = user.id,
-				type = "SMSG_USER_COUNT",
-			}, protocol.fromU8(1) .. protocol.fromU32(userCount))
+			return protocol.generalMessage(
+				0,
+				user.id,
+				"SMSG_USER_COUNT",
+
+				protocol.fromU8(1) .. protocol.fromU32(userCount)
+			)
 		end)
 	end,
 
@@ -310,19 +333,23 @@ local generalFunctions = {
 			if subtype == 0 or subtype == 1 then
 				bureau:sendAll(function(other)
 					if user == other then return end
-					return protocol.generalMessage({
-						id1 = other.id,
-						id2 = other.id,
-						type = "MSG_COMMON",
-					}, msg)
+					return protocol.generalMessage(
+						other.id,
+						other.id,
+						"MSG_COMMON",
+
+						msg
+					)
 				end)
 			elseif subtype == 2 or subtype == 3 then
 				local id = protocol.getU32(data, 18)
-				protocol.generalMessage({
-					id1 = id,
-					id2 = id,
-					type = "MSG_COMMON",
-				}, msg)
+				protocol.generalMessage(
+					id,
+					id,
+					"MSG_COMMON",
+
+					msg
+				)
 			end
 		end
 	end,

@@ -48,47 +48,57 @@ function User:addAura(other)
 	other:emit("EnteredAura", self)
 
 	self.client:send(string_format("%s%s",
-		protocol.generalMessage({
-			id1 = self.id,
-			id2 = self.id,
-			type = "SMSG_USER_JOINED",
-		}, string_format("%s%s%s\0%s\0",
-			protocol.fromU32(other.id),
-			protocol.fromU32(other.id),
-			other.avatar,
-			other.name
-		)),
-		other.characterData and protocol.generalMessage({
-			id1 = self.id,
-			id2 = self.id,
-			type = "MSG_COMMON",
-		}, protocol.commonMessage({
-			id = other.id,
-			type = "CHARACTER_UPDATE",
-			subtype = 1
-		}, other.characterData)) or ""
+		protocol.generalMessage(
+			self.id,
+			self.id,
+			"SMSG_USER_JOINED",
+
+			string_format("%s%s%s\0%s\0",
+				protocol.fromU32(other.id),
+				protocol.fromU32(other.id),
+				other.avatar,
+				other.name
+			)
+		),
+		other.characterData and protocol.generalMessage(
+			self.id,
+			self.id,
+			"MSG_COMMON",
+
+			protocol.commonMessage(
+				other.id,
+				"CHARACTER_UPDATE",
+				1,
+				other.characterData
+			)
+		) or ""
 	))
 
 	other.client:send(string_format("%s%s",
-		protocol.generalMessage({
-			id1 = other.id,
-			id2 = other.id,
-			type = "SMSG_USER_JOINED",
-		}, string_format("%s%s%s\0%s\0",
-			protocol.fromU32(self.id),
-			protocol.fromU32(self.id),
-			self.avatar,
-			self.name
-		)),
-		self.characterData and protocol.generalMessage({
-			id1 = other.id,
-			id2 = other.id,
-			type = "MSG_COMMON",
-		}, protocol.commonMessage({
-			id = self.id,
-			type = "CHARACTER_UPDATE",
-			subtype = 1
-		}, self.characterData)) or ""
+		protocol.generalMessage(
+			other.id,
+			other.id,
+			"SMSG_USER_JOINED",
+
+			string_format("%s%s%s\0%s\0",
+				protocol.fromU32(self.id),
+				protocol.fromU32(self.id),
+				self.avatar,
+				self.name
+			)
+		),
+		self.characterData and protocol.generalMessage(
+			other.id,
+			other.id,
+			"MSG_COMMON",
+
+			protocol.commonMessage(
+				self.id,
+				"CHARACTER_UPDATE",
+				1,
+				self.characterData
+			)
+		) or ""
 	))
 end
 
@@ -102,17 +112,21 @@ function User:removeAura(other)
 	other:emit("LeftAura", self)
 
 	if not self.client.closed then
-		self.client:send(protocol.generalMessage({
-			id1 = self.id,
-			id2 = self.id,
-			type = "SMSG_USER_LEFT",
-		}, protocol.fromU32(other.id)))
+		self.client:send(protocol.generalMessage(
+			self.id,
+			self.id,
+			"SMSG_USER_LEFT",
+
+			protocol.fromU32(other.id)
+		))
 	end
-	other.client:send(protocol.generalMessage({
-		id1 = other.id,
-		id2 = other.id,
-		type = "SMSG_USER_LEFT",
-	}, protocol.fromU32(self.id)))
+	other.client:send(protocol.generalMessage(
+		other.id,
+		other.id,
+		"SMSG_USER_LEFT",
+
+		protocol.fromU32(self.id)
+	))
 end
 
 --- Check if a user is inside of another user's aura

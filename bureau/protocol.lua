@@ -103,28 +103,32 @@ local commonTypes = {
 }
 
 --- Helper function to make a general message
----@param head table{ id1: number, id2: number, type: string }
+---@param id1 number
+---@param id2 number
+---@param type string
 ---@param content string
 ---@return string
-local function generalMessage(head, content)
+local function generalMessage(id1, id2, type, content)
 	return string_format("%s%s%s%s%s%s",
 		"\0",
-		fromU32(head.id1),
-		fromU32(head.id2),
-		fromU32(opcodes[head.type]),
+		fromU32(id1),
+		fromU32(id2),
+		fromU32(opcodes[type]),
 		fromU32(#content),
 		content
 	)
 end
 
 --- Helper function to make common messages
----@param head table{ id: number, type: string, subtype: number }
+---@param id number
+---@param type string
+---@param subtype number
 ---@param content string
-local function commonMessage(head, content)
+local function commonMessage(id, type, subtype, content)
 	return string_format("%s%s%s%s",
-		fromU32(head.id),
-		fromU32(commonTypes[head.type]),
-		fromU8(head.subtype),
+		fromU32(id),
+		fromU32(commonTypes[type]),
+		fromU8(subtype),
 		content
 	)
 end
