@@ -343,13 +343,16 @@ local generalFunctions = {
 				end)
 			elseif subtype == 2 or subtype == 3 then
 				local id = protocol.getU32(data, 18)
-				protocol.generalMessage(
-					id,
-					id,
-					"MSG_COMMON",
+				local target = bureau.users[id]
+				if target then
+					target.client:send(protocol.generalMessage(
+						id,
+						id,
+						"MSG_COMMON",
 
-					msg
-				)
+						msg
+					))
+				end
 			end
 		end
 	end,
