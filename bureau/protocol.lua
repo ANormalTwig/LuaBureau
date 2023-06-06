@@ -154,7 +154,7 @@ local commonTypes = {
 	APPL_SPECIFIC = 0x00002710,
 }
 
---- Helper function to make a general message
+--- Helper function to make a general message.
 ---@param id1 number
 ---@param id2 number
 ---@param type string
@@ -171,7 +171,7 @@ local function generalMessage(id1, id2, type, content)
 	)
 end
 
---- Helper function to make common messages
+--- Helper function to make common messages.
 ---@param id number
 ---@param type string
 ---@param subtype number
@@ -185,7 +185,7 @@ local function commonMessage(id, type, subtype, content)
 	)
 end
 
---- Helper function to make a position update messagestring.char(x%0x100, bit_rshift(x, 8)%0x100)
+--- Helper function to make a position update messages.
 ---@param user User
 ---@param other User
 ---@return string
