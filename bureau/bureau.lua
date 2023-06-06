@@ -359,7 +359,7 @@ local generalFunctions = {
 		end
 	end,
 
-	[protocol.opcodes.CMSG_STATE_CHANGE] = function(bureau, user, data)
+	[protocol.opcodes.CMSG_STATE_CHANGE] = function(_, user, data)
 		local state = protocol.getU8(data, 18)
 		user:emit("StateChange", state)
 		log(2, "%s(%d)'s state is now %s", user.name, user.id, state)
