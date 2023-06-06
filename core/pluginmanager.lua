@@ -25,7 +25,7 @@ for file in lfs.dir("plugins") do
 	end
 end
 
---- Loads all valid plugins in the 'plugin' folder on the specified bureau
+--- Loads all valid plugins in the 'plugin' folder on the specified bureau.
 ---@param bureau Bureau
 ---@param wls WLS?
 ---@param worldName string?

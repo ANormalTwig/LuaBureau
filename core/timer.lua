@@ -14,7 +14,7 @@ local Timer = {}
 Timer.__index = Timer
 setmetatable(Timer, Emitter)
 
---- Creates a new Timer
+--- Creates a new Timer.
 ---@param timeout number
 ---@param looping boolean?
 ---@return Timer
@@ -29,7 +29,7 @@ function Timer:new(timeout, looping)
 	return timer
 end
 
---- Stops the timer from executing again
+--- Stops the timer from executing again.
 function Timer:stop()
 	self._done = true
 end

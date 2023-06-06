@@ -25,7 +25,7 @@ function Client:new(sock)
 	return client
 end
 
---- Connects the client to a TCP server
+--- Connects the client to a TCP server.
 ---@param ip string
 ---@param port number
 function Client:connect(ip, port)
@@ -36,7 +36,7 @@ function Client:connect(ip, port)
 	self.socket = sock
 end
 
---- Send data over the socket
+--- Send data over the socket.
 ---@param str string data
 ---@param i number?
 ---@param j number?
@@ -53,7 +53,7 @@ function Client:close()
 	self._done = true
 end
 
---- Pools events from the client
+--- Polls events from the client.
 function Client:poll()
 	if not self.socket then return end
 

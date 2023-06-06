@@ -16,6 +16,7 @@ function Pool:new(max)
 	}, self)
 end
 
+--- Get an ID from the pool
 function Pool:getID()
 	for _ = 1, self.max do
 		if not self.used[self.index] then
@@ -27,6 +28,8 @@ function Pool:getID()
 	return false
 end
 
+--- Free an ID to the pool
+---@param id number
 function Pool:freeID(id)
 	self.used[id] = nil
 end

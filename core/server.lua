@@ -13,7 +13,7 @@ Server.__index = Server
 setmetatable(Server, Emitter)
 
 --- Creates a new TCP server.
----@return Server TCPserver.
+---@return Server TCPserver
 function Server:new()
 	local server = setmetatable(getmetatable(self):new(), self)
 	loop.add(server)
@@ -23,7 +23,7 @@ function Server:new()
 	return server
 end
 
---- Listen to a port
+--- Listen to a port.
 ---@param port number
 ---@param backlog number?
 function Server:listen(port, backlog)
@@ -34,14 +34,14 @@ function Server:listen(port, backlog)
 	self.port = port
 end
 
---- Closes server socket
+--- Closes server socket.
 function Server:close()
 	assert(self.socket, "No socket"):close()
 	self:emit("close")
 	self._done = true
 end
 
---- Broadcast messages to every socket
+--- Broadcast messages to every socket.
 ---@param cb fun(client: Client)
 function Server:broadcast(cb)
 	for client, _ in pairs(self.clients) do
@@ -49,7 +49,7 @@ function Server:broadcast(cb)
 	end
 end
 
---- Polls events from the server
+--- Polls events from the server.
 function Server:poll()
 	if self._done or not self.socket then return end
 

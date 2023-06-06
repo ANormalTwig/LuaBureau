@@ -9,7 +9,7 @@ function Emitter:new()
 	return setmetatable({listeners = {}}, self)
 end
 
---- Add a new event listener
+--- Add a new event listener.
 ---@param name string Event name
 ---@param cb function Callback
 ---@return number index
@@ -24,7 +24,7 @@ function Emitter:on(name, cb)
 	return index
 end
 
---- Add a new event listener that only triggers once
+--- Add a new event listener that only triggers once.
 ---@param name string Event name
 ---@param cb function Callback
 ---@return number index
@@ -42,7 +42,7 @@ function Emitter:once(name, cb)
 	return index
 end
 
---- Remove an event callback
+--- Remove an event callback.
 ---@param name string Event name
 ---@param index number Callback index
 function Emitter:removeListener(name, index)
@@ -51,7 +51,7 @@ function Emitter:removeListener(name, index)
 	table.remove(self.listeners[name], index)
 end
 
---- Emit an event
+--- Emit an event.
 ---@param name string
 ---@vararg any
 function Emitter:emit(name, ...)

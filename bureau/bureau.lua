@@ -11,6 +11,7 @@ local function hexify(str)
 	local chars = {string_byte(str, 1, #str)}
 	return string.format(string_rep("%02x ", #chars), unpack(chars))
 end
+
 ---@class Bureau: Server
 ---@field users table<number, User>
 ---@field pool Pool
@@ -110,7 +111,7 @@ function Bureau:new(max)
 	return bureau
 end
 
---- Get the current number of users connected to the Bureau
+--- Get the current number of users connected to the Bureau.
 ---@return number users
 function Bureau:getUserCount()
 	local userCount = 0
@@ -120,7 +121,7 @@ function Bureau:getUserCount()
 	return userCount
 end
 
---- Broadcast a message to every client
+--- Broadcast a message to every client.
 ---@param cb fun(user: User): string|nil
 function Bureau:sendAll(cb)
 	for _, user in pairs(self.users) do
@@ -145,7 +146,7 @@ local commonMessages = {
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
 		local content = string_sub(data, 27)
-		local message = string_sub(content, 1, #content - 1) -- Trunicate null character 
+		local message = string_sub(content, 1, #content - 1) -- Trunicate null character
 
 		-- Don't send empty messages.
 		if #message == 0 then return end
@@ -274,6 +275,7 @@ local generalFunctions = {
 				0,
 				user.id,
 				"SMSG_CLIENT_ID",
+
 				protocol.fromU32(user.id)
 			),
 

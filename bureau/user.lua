@@ -19,7 +19,7 @@ local User = {}
 User.__index = User
 setmetatable(User, Emitter)
 
---- Create new User
+--- Create new User.
 ---@param id number
 ---@param client Client
 ---@return User user
@@ -38,7 +38,7 @@ function User:new(id, client)
 	return setmetatable(user, self)
 end
 
---- Add a user to the aura table
+--- Add a user to the aura table.
 ---@param other User
 function User:addAura(other)
 	self.aura[other] = true
@@ -102,7 +102,7 @@ function User:addAura(other)
 	))
 end
 
---- Remove a user from the aura table
+--- Remove a user from the aura table.
 ---@param other User
 function User:removeAura(other)
 	self.aura[other] = nil
@@ -129,7 +129,7 @@ function User:removeAura(other)
 	))
 end
 
---- Check if a user is inside of another user's aura
+--- Check if a user is inside of another user's aura.
 ---@param user User
 ---@return boolean
 function User:checkAura(user)

@@ -18,7 +18,7 @@ local function getU8(str, i)
 	return string_byte(str, i)
 end
 
---- Converts an ungiend 8bit integer into 1 char.
+--- Converts an unsigned 8bit integer into 1 char.
 local function from8(n)
 	if n < 0 then n = n - 0x100 end
 	return string_char(n)
