@@ -40,32 +40,32 @@ end
 ---@param v Vector3
 function Vector3:add(v)
 	self.x = self.x + v.x
-	self.x = self.x + v.x
-	self.x = self.x + v.x
+	self.y = self.y + v.y
+	self.z = self.z + v.z
 end
 
 --- Subtracts v from self.
 ---@param v Vector3
 function Vector3:sub(v)
 	self.x = self.x - v.x
-	self.x = self.x - v.x
-	self.x = self.x - v.x
+	self.y = self.y - v.y
+	self.z = self.z - v.z
 end
 
 --- Multipies self by v.
 ---@param v Vector3
 function Vector3:mul(v)
 	self.x = self.x * v.x
-	self.x = self.x * v.x
-	self.x = self.x * v.x
+	self.y = self.y * v.y
+	self.z = self.z * v.z
 end
 
 --- Divides self by v.
 ---@param v Vector3
 function Vector3:div(v)
 	self.x = self.x / v.x
-	self.x = self.x / v.x
-	self.x = self.x / v.x
+	self.y = self.y / v.y
+	self.z = self.z / v.z
 end
 
 --- Set the x, y, and z of the vector.
