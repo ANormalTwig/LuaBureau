@@ -10,15 +10,20 @@ parser:option("-b --max-bureaus", "Max bureaus.")
 	:convert(tonumber)
 	:default(10)
 parser:option("-c --config", "Config file. (Discards all other command-line arguments if set)")
-parser:option("-u --max-users", "Max users of a bureau.")
-	:convert(tonumber)
-	:default(0xFF)
+parser:option("-m --enable-motd", "Enable message of the day.")
+	:args(0)
+	:default(false)
+parser:option("-n --motd-file", "MOTD file.")
+	:default("motd.txt")
 parser:option("-p --port", "Port number.")
 	:convert(tonumber)
 	:default(5126)
 parser:option("-r --aura-radius", "Aura radius.")
 	:convert(tonumber)
 	:default(100)
+parser:option("-u --max-users", "Max users of a bureau.")
+	:convert(tonumber)
+	:default(0xFF)
 parser:option("-v --verbose", "Verbosity level.")
 	:convert(tonumber)
 	:default(0)
@@ -34,8 +39,10 @@ if args.config then
 	Config = require("util.config")(config, {
 		aura_radius = {"number", 100},
 		bureau_address = {"string", "127.0.0.1"},
+		enable_motd = {"boolean", true},
 		max_bureaus = {"number", 10},
 		max_users = {"number", 0xFF},
+		motd_file = {"string", "motd.txt"},
 		port = {"number", 5126},
 		verbosity = {"number", 0},
 		wls = {"boolean", false},
@@ -46,6 +53,15 @@ else
 end
 
 require("util.printtable")(Config)
+
+if Config.enable_motd then
+	local file = io.open(Config.motd_file)
+	if not file then error("MOTD enabled but could not find specified file") end
+
+	MOTDMessage = file:read("*a")
+
+	file:close()
+end
 
 if Config.wls then
 	local wls = require("wls.wls"):new()

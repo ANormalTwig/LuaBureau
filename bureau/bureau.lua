@@ -83,6 +83,10 @@ function Bureau:new(max)
 
 				bureau:emit("UserJoined", user)
 
+				if Config.enable_motd then
+					bureau:sendMessage(user, MOTDMessage)
+				end
+
 				return
 			end
 
@@ -194,7 +198,6 @@ local commonMessages = {
 
 		-- Don't send empty messages.
 		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
-		bureau:sendMessage(user, "You smell.")
 
 		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
 		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
