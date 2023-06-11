@@ -14,6 +14,7 @@ end
 
 ---@class Bureau: Server
 ---@field users table<number, User>
+---@field serverid number
 ---@field pool Pool
 local Bureau = {}
 Bureau.__index = Bureau
@@ -26,7 +27,11 @@ function Bureau:new(max)
 	setmetatable(bureau, self)
 
 	bureau.users = {}
-	bureau.pool = Pool:new(max or 0xFF)
+	bureau.pool = Pool:new((max or 0xFF) + 1)
+
+	local serverid = bureau.pool:getID()
+	if not serverid then error("Failed to assign an ID to the server.") end
+	bureau.serverid = serverid
 
 	bureau:on("Connect", function(client)
 		---@cast client Client
@@ -111,6 +116,45 @@ function Bureau:new(max)
 	return bureau
 end
 
+--- Sends a chat message to the specified user.
+---@param user User
+---@param message string
+function Bureau:sendMessage(user, message)
+	user.client:send(string_format("%s%s%s",
+		protocol.generalMessage(
+			user.id, user.id,
+			"SMSG_USER_JOINED",
+
+			string_format("%s%s%s\0%s\0",
+				protocol.fromU32(self.serverid),
+				protocol.fromU32(self.serverid),
+				"avtwrl/01cat.wrl",
+				"Server"
+			)
+		),
+
+		protocol.generalMessage(
+			user.id, user.id,
+			"MSG_COMMON",
+
+			protocol.commonMessage(
+				self.serverid,
+				"CHAT_SEND",
+				0,
+
+				string_format("[Server] %s\0", message)
+			)
+		),
+
+		protocol.generalMessage(
+			user.id, user.id,
+			"SMSG_USER_LEFT",
+
+			protocol.fromU32(self.serverid)
+		)
+	))
+end
+
 --- Get the current number of users connected to the Bureau.
 ---@return number users
 function Bureau:getUserCount()
@@ -149,7 +193,8 @@ local commonMessages = {
 		local message = string_sub(content, 1, #content - 1) -- Trunicate null character
 
 		-- Don't send empty messages.
-		if #message == 0 then return end
+		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
+		bureau:sendMessage(user, "You smell.")
 
 		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
 		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
