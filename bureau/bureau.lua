@@ -83,7 +83,7 @@ function Bureau:new(max)
 
 				bureau:emit("UserJoined", user)
 
-				if Config.enable_motd then
+				if MOTDMessage then
 					bureau:sendMessage(user, MOTDMessage)
 				end
 
@@ -123,7 +123,8 @@ end
 --- Sends a chat message to the specified user.
 ---@param user User
 ---@param message string
-function Bureau:sendMessage(user, message)
+---@param prependServer boolean Whether to prepend '[Server]' to the beginning of the message.
+function Bureau:sendMessage(user, message, prependServer)
 	user.client:send(string_format("%s%s%s",
 		protocol.generalMessage(
 			user.id, user.id,
@@ -146,7 +147,7 @@ function Bureau:sendMessage(user, message)
 				"CHAT_SEND",
 				0,
 
-				string_format("[Server] %s\0", message)
+				prependServer and string_format("[Server] %s\0", message) or message .. "\0"
 			)
 		),
 
