@@ -16,6 +16,7 @@ WLS.__index = WLS
 setmetatable(WLS, Server)
 
 --- Create a new WLS.
+---@return WLS
 function WLS:new()
 	local wls = setmetatable(getmetatable(self):new(), self)
 
@@ -61,7 +62,7 @@ end
 ---@return Bureau|nil
 function WLS:getBureau(worldName)
 	if not self.bureaus[worldName] then
-		log(1, "Generating a new Buearu")
+		log(2, "Attempting to generate a new Buearu.")
 		return self:newBureau(worldName)
 	end
 
@@ -71,12 +72,14 @@ function WLS:getBureau(worldName)
 		end
 	end
 
-	if self.totalBureaus < Config.max_bureaus then
-		log(1, "Generating a new Buearu")
-		return self:newBureau(worldName)
-	end
+	log(2, "Attempting to generate a new Buearu.")
+	return self:newBureau(worldName)
 end
 
+--- Attempt to generate a new bureau under the worldname
+---@private
+---@param worldName string
+---@return Bureau|nil
 function WLS:newBureau(worldName)
 	local bureau = Bureau:new(Config.max_users)
 	self.totalBureaus = self.totalBureaus + 1
@@ -84,6 +87,11 @@ function WLS:newBureau(worldName)
 	loadPlugins(bureau, self, worldName)
 
 	local id = self.pool:getID()
+	if not id then
+		log(2, "Can't generate new Bureau, max Bureaus reached.")
+		return
+	end
+
 	bureau:listen(Config.port + id)
 	if not self.bureaus[worldName] then
 		self.bureaus[worldName] = {}
@@ -108,7 +116,7 @@ function WLS:newBureau(worldName)
 	end)
 
 	timer:on("Timeout", function()
-		log(1, "Bureau closed due to lack of immediate user connection.")
+		log(2, "Bureau closed due to the lack of any user connection.")
 		bureau:close()
 	end)
 

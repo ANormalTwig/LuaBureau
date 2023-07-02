@@ -11,8 +11,8 @@ Client.__index = Client
 setmetatable(Client, Emitter)
 
 --- Create a new TCP client.
----@return Client TCPclient.
 ---@param sock userdata? Socket to use instead of creating a new one.
+---@return Client
 function Client:new(sock)
 	local client = setmetatable(getmetatable(self):new(), self)
 	loop.add(client)

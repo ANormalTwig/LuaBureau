@@ -5,7 +5,7 @@ local Pool = require("core.pool")
 local Server = require("core.server")
 local User = require("bureau.user")
 
-local string_byte, string_format, string_rep, string_sub = string.byte,  string.format, string.rep, string.sub
+local string_byte, string_format, string_match, string_rep, string_sub = string.byte,  string.format, string.match, string.rep, string.sub
 
 local function hexify(str)
 	local chars = {string_byte(str, 1, #str)}
@@ -201,7 +201,6 @@ local commonMessages = {
 		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
 
 		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
-		user:emit("ChatMessage", string_sub(message, 1, #message - 1))
 
 		return protocol.commonMessage(
 			user.id,
@@ -214,9 +213,11 @@ local commonMessages = {
 
 	[protocol.commonTypes.NAME_CHANGE] = function(_, user, data, subtype)
 		local name = string_sub(data, 27)
-		user.name = string_sub(name, 1, #name - 1)	-- Trunicate null character
+		local username = string_sub(name, 1, #name - 1)	-- Trunicate null character
 
-		user:emit("NameChange")
+		local oldName = user.name
+		user.name = username
+		user:emit("NameChange", username, oldName)
 
 		return protocol.commonMessage(
 			user.id,
@@ -229,9 +230,11 @@ local commonMessages = {
 
 	[protocol.commonTypes.AVATAR_CHANGE] = function(_, user, data, subtype)
 		local avatar = string_sub(data, 27)
-		user.avatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
+		local userAvatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
 
-		user:emit("AvatarChange")
+		local oldAvatar = user.avatar
+		user.avatar = userAvatar
+		user:emit("AvatarChange", userAvatar, oldAvatar)
 
 		return protocol.commonMessage(
 			user.id,
@@ -248,13 +251,13 @@ local commonMessages = {
 			m[i + 1] = protocol.get32float(data, 27 + i * 4)
 		end
 		user.rotation:set(m)
+		user:emit("TransformUpdate")
+
 		user.position:set(
 			protocol.get32float(data, 63),
 			protocol.get32float(data, 67),
 			protocol.get32float(data, 71)
 		)
-
-		user:emit("TransformUpdate")
 		user:emit("PositionUpdate")
 
 		return protocol.commonMessage(
@@ -269,6 +272,9 @@ local commonMessages = {
 	[protocol.commonTypes.CHARACTER_UPDATE] = function(_, user, data, subtype)
 		local characterData = string_sub(data, 27)
 		user.characterData = characterData
+
+		local sleepStatus = string_match(characterData, "^sleep:(.)")
+		if not sleepStatus then return end
 
 		user:emit("CharacterUpdate")
 
@@ -321,32 +327,28 @@ local generalFunctions = {
 		local userJoinedContent = string_format("%s%s%s\0%s\0", protocol.fromU32(user.id), protocol.fromU32(user.id), avatar, name)
 		user.client:send(string_format("%s%s%s%s",
 			protocol.generalMessage(
-				0,
-				user.id,
+				0, user.id,
 				"SMSG_CLIENT_ID",
 
 				protocol.fromU32(user.id)
 			),
 
 			protocol.generalMessage(
-				user.id,
-				user.id,
+				user.id, user.id,
 				"SMSG_UNNAMED_1",
 
 				protocol.fromU32(1) .. protocol.fromU8(1)
 			),
 
 			protocol.generalMessage(
-				user.id,
-				user.id,
+				user.id, user.id,
 				"SMSG_USER_JOINED",
 
 				userJoinedContent
 			),
 
 			protocol.generalMessage(
-				user.id,
-				user.id,
+				user.id, user.id,
 				"SMSG_BROADCAST_ID",
 
 				protocol.fromU32(user.id)
@@ -357,8 +359,7 @@ local generalFunctions = {
 		---@diagnostic disable-next-line: redefined-local
 		bureau:sendAll(function(user)
 			return protocol.generalMessage(
-				0,
-				user.id,
+				0, user.id,
 				"SMSG_USER_COUNT",
 
 				protocol.fromU8(1) .. protocol.fromU32(userCount)
@@ -385,8 +386,7 @@ local generalFunctions = {
 				bureau:sendAll(function(other)
 					if user == other then return end
 					return protocol.generalMessage(
-						other.id,
-						other.id,
+						other.id, other.id,
 						"MSG_COMMON",
 
 						msg
@@ -397,8 +397,7 @@ local generalFunctions = {
 				local target = bureau.users[id]
 				if target then
 					target.client:send(protocol.generalMessage(
-						id,
-						id,
+						id, id,
 						"MSG_COMMON",
 
 						msg
