@@ -37,7 +37,7 @@ function Emitter:once(name, cb)
 	local index = #self.listeners + 1
 	table.insert(self.listeners[name], function(...)
 		table.remove(self.listeners[name], index)
-		cb(...)
+		return cb(...)
 	end)
 	return index
 end
@@ -54,11 +54,16 @@ end
 --- Emit an event.
 ---@param name string
 ---@vararg any
+---@return any
 function Emitter:emit(name, ...)
 	name = name:lower()
 	if not self.listeners[name] then return end
 	for _, cb in ipairs(self.listeners[name]) do
-		cb(...)
+		local ret = cb(...)
+
+		if ret ~= nil then
+			return ret
+		end
 	end
 end
 
