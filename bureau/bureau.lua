@@ -200,7 +200,8 @@ local commonMessages = {
 		-- Don't send empty messages.
 		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
 
-		bureau:emit("ChatMessage", user, string_sub(message, 1, #message - 1))
+		-- If a plugin returns true during their event callback, suppress the message.
+		if user:emit("ChatMessage", string_sub(message, 1, #message - 1)) then return end
 
 		return protocol.commonMessage(
 			user.id,
@@ -273,10 +274,12 @@ local commonMessages = {
 		local characterData = string_sub(data, 27)
 		user.characterData = characterData
 
-		local sleepStatus = string_match(characterData, "^sleep:(.)")
+		local sleepStatus = string_match(characterData, "^sleep:(.) ")
 		if not sleepStatus then return end
 
-		user:emit("CharacterUpdate")
+		user:emit("CharacterUpdate", {
+			sleep = sleepStatus == "0"
+		})
 
 		return protocol.commonMessage(
 			user.id,
