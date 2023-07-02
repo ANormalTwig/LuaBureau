@@ -278,7 +278,7 @@ local commonMessages = {
 		if not sleepStatus then return end
 
 		user:emit("CharacterUpdate", {
-			sleep = sleepStatus == "0"
+			sleep = sleepStatus == "1"
 		})
 
 		return protocol.commonMessage(
