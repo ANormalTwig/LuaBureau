@@ -5,7 +5,7 @@ local Pool = require("core.pool")
 local Server = require("core.server")
 local User = require("bureau.user")
 
-local string_byte, string_format, string_match, string_rep, string_sub = string.byte,  string.format, string.match, string.rep, string.sub
+local string_byte, string_format, string_match, string_rep, string_sub = string.byte, string.format, string.match, string.rep, string.sub
 
 local function hexify(str)
 	local chars = {string_byte(str, 1, #str)}
@@ -33,13 +33,13 @@ function Bureau:new(max)
 	if not serverid then error("Failed to assign an ID to the server.") end
 	bureau.serverid = serverid
 
-	bureau:on("Connect", function(client)
+	bureau:on("connect", function(client)
 		---@cast client Client
 
 		---@type User
 		local user
 
-		client:on("Close", function()
+		client:on("close", function()
 			if not user then return end
 
 			for other in pairs(user.aura) do
@@ -63,7 +63,7 @@ function Bureau:new(max)
 			end)
 		end)
 
-		client:on("Data", function(data)
+		client:on("data", function(data)
 			if not user then
 				if not data == "hello\1\1" then
 					client:close()
@@ -194,64 +194,67 @@ local commonMessages = {
 	end,
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
-		local content = string_sub(data, 27)
-		local message = string_sub(content, 1, #content - 1) -- Trunicate null character
+		local message = protocol.getString(data, 27) -- Trunicate null character
 
 		-- Don't send empty messages.
 		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
 
 		-- If a plugin returns true during their event callback, suppress the message.
-		if user:emit("ChatMessage", string_sub(message, 1, #message - 1)) then return end
+		if bureau:emit("ChatMessage", user, message) then return end
+		if user:emit("ChatMessage", message) then return end
 
 		return protocol.commonMessage(
 			user.id,
 			"CHAT_SEND",
 			subtype,
 
-			content
+			message .. "\0"
 		)
 	end,
 
-	[protocol.commonTypes.NAME_CHANGE] = function(_, user, data, subtype)
-		local name = string_sub(data, 27)
-		local username = string_sub(name, 1, #name - 1)	-- Trunicate null character
+	[protocol.commonTypes.NAME_CHANGE] = function(bureau, user, data, subtype)
+		local name = protocol.getString(data, 27)
 
-		local oldName = user.name
-		user.name = username
-		user:emit("NameChange", username, oldName)
+		local old = user.name
+		user.name = name
+		bureau:emit("NameChange", user, name, old)
+		user:emit("NameChange", name, old)
 
 		return protocol.commonMessage(
 			user.id,
 			"NAME_CHANGE",
 			subtype,
 
-			name
+			name .. "\0"
 		)
 	end,
 
-	[protocol.commonTypes.AVATAR_CHANGE] = function(_, user, data, subtype)
-		local avatar = string_sub(data, 27)
-		local userAvatar = string_sub(avatar, 1, #avatar - 1)	-- Trunicate null character
+	[protocol.commonTypes.AVATAR_CHANGE] = function(bureau, user, data, subtype)
+		local avatar = protocol.getString(data, 27)
 
-		local oldAvatar = user.avatar
-		user.avatar = userAvatar
-		user:emit("AvatarChange", userAvatar, oldAvatar)
+		local old = user.avatar
+		user.avatar = avatar
+		bureau:emit("AvatarChange", user, avatar, old)
+		user:emit("AvatarChange", avatar, old)
 
 		return protocol.commonMessage(
 			user.id,
 			"AVATAR_CHANGE",
 			subtype,
 
-			avatar
+			avatar .. "\0"
 		)
 	end,
 
-	[protocol.commonTypes.TRANSFORM_UPDATE] = function(_, user, data, subtype)
+	[protocol.commonTypes.TRANSFORM_UPDATE] = function(bureau, user, data, subtype)
+		if #data ~= 74 then return end
+
 		local m = {}
 		for i = 0, 8 do
 			m[i + 1] = protocol.get32float(data, 27 + i * 4)
 		end
 		user.rotation:set(m)
+		bureau:emit("TransformUpdate", user)
 		user:emit("TransformUpdate")
 
 		user.position:set(
@@ -259,6 +262,7 @@ local commonMessages = {
 			protocol.get32float(data, 67),
 			protocol.get32float(data, 71)
 		)
+		bureau:emit("PositionUpdate", user)
 		user:emit("PositionUpdate")
 
 		return protocol.commonMessage(
@@ -270,16 +274,16 @@ local commonMessages = {
 		)
 	end,
 
-	[protocol.commonTypes.CHARACTER_UPDATE] = function(_, user, data, subtype)
+	[protocol.commonTypes.CHARACTER_UPDATE] = function(bureau, user, data, subtype)
 		local characterData = string_sub(data, 27)
 		user.characterData = characterData
 
 		local sleepStatus = string_match(characterData, "^sleep:(.) ")
 		if not sleepStatus then return end
 
-		user:emit("CharacterUpdate", {
-			sleep = sleepStatus == "1"
-		})
+		local isSleeping = sleepStatus == "1"
+		bureau:emit("CharacterUpdate", user, isSleeping)
+		user:emit("CharacterUpdate", isSleeping)
 
 		return protocol.commonMessage(
 			user.id,
@@ -294,14 +298,20 @@ local commonMessages = {
 	[protocol.commonTypes.UNNAMED_1] = function() end,
 
 	[protocol.commonTypes.PRIVATE_CHAT] = function(bureau, user, data, subtype)
-		local sender = bureau.users[protocol.getU32(data, 18)]
-		local recipient = bureau.users[protocol.getU32(data, 27)]
+		if #data < 31 then return end
 
-		if not sender or not recipient then return end
+		local recipient = bureau.users[protocol.getU32(data, 18)]
+		-- Although the client sends the id thats sending the message,
+		-- its pointless since you already know the socket that's
+		-- sending the message.
+		-- local sender = bureau.users[protocol.getU32(data, 27)]
+
+		if not recipient then return end
 		local message = string_sub(data, 31)
 
-		bureau:emit("PrivateMessage", user, recipient, message)
-		user:emit("PrivateMessage", recipient, message)
+		-- If a plugin returns true during their event callback, suppress the message.
+		if bureau:emit("PrivateMessage", user, recipient, message) then return end
+		if user:emit("PrivateMessage", recipient, message) then return end
 
 		return protocol.commonMessage(
 			user.id,
@@ -309,7 +319,7 @@ local commonMessages = {
 			subtype,
 
 			string_format("%s%s",
-				protocol.fromU32(sender.id),
+				protocol.fromU32(user.id),
 				message
 			)
 		)
@@ -410,8 +420,9 @@ local generalFunctions = {
 		end
 	end,
 
-	[protocol.opcodes.CMSG_STATE_CHANGE] = function(_, user, data)
+	[protocol.opcodes.CMSG_STATE_CHANGE] = function(bureau, user, data)
 		local state = protocol.getU8(data, 18)
+		bureau:emit("StateChange", user, state)
 		user:emit("StateChange", state)
 		log(2, "%s(%d)'s state is now %s", user.name, user.id, state)
 	end,
@@ -438,6 +449,7 @@ function Bureau:handlePositionUpdate(data, user)
 		protocol.get32float(data, 22)
 	)
 
+	self:emit("PositionUpdate", user)
 	user:emit("PositionUpdate")
 
 	self:sendAll(function(other)
