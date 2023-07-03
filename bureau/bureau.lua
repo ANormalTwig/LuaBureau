@@ -194,7 +194,7 @@ local commonMessages = {
 	end,
 
 	[protocol.commonTypes.CHAT_SEND] = function(bureau, user, data, subtype)
-		local message = protocol.getString(data, 27) -- Trunicate null character
+		local message = protocol.getString(data, 27)
 
 		-- Don't send empty messages.
 		if #string.match(string_sub(message, #user.name + 3), "^%s*(.-)%s*$") == 0 then return end
