@@ -115,7 +115,7 @@ end
 ---@param str string Data.
 ---@param i number Start.
 local function getString(str, i)
-	return string_match(str, "(.-)%z", i)
+	return string_match(str, "^(.-)%z", i)
 end
 
 ---@enum states
